@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+    stages{
+        stage('git checkout and package'){
+            steps{
+                git 'https://github.com/madhusudanvb25/insurance-me.git'
+                sh 'mvn clean package'
+            }
+        }
+        stage('build docker image'){
+            steps{
+                sh 'docker build -t madhuvb/insurancedemo:1 .'
+            }
+        }
+        stage('push docker image to dockerhub') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+            sh "docker push madhuvb/insurancedemo:1"
+            }
+         }
+       }
+       stage('deploy using kubernetes'){
+            steps{
+                sh 'sudo kubectl apply -f kubernetesfile.yml'
+                sh 'sudo kubectl get all'
+            }
+        }
+     }
+}
